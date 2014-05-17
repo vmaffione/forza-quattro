@@ -85,7 +85,6 @@ function make_rgb(r, g, b)
 function Intro(gl)
 {
     this.gl = gl;
-    this.something_changed = 1;
     this.rgb1 = 0;  /* RGB component for the first text */
     this.rgb2 = 0;  /* RGB component for the second text */
     this.rgb3 = 0;  /* RGB component for the third text */
@@ -95,6 +94,9 @@ function Intro(gl)
     {
         var that = this;
 
+        /* Draw once at the beginning. */
+        this.draw();
+
         this.timer = setInterval(function() {
                 that.animation_step();
                 }, 1000 / 60);
@@ -103,19 +105,16 @@ function Intro(gl)
     this.animation_step = animation_step;
     function animation_step()
     {
-        this.draw();
+        var something_changed = this.move();
 
-        this.move();
+        if (something_changed) {
+            this.draw();
+        }
     }
 
     this.draw = draw;
     function draw()
     {
-        if (!this.something_changed) {
-            return;
-        }
-        this.something_changed = 0;
-
         var ctx = this.gl.canvas.getContext("2d");
         var txt;
         var txt_width;
@@ -152,25 +151,30 @@ function Intro(gl)
     this.move = move;
     function move()
     {
+        var something_changed = 0;
+
         if (this.rgb1 < 255) {
             this.rgb1 += 4;
-            this.something_changed = 1;
+            something_changed = 1;
         }
         if (this.rgb1 >= 255 && this.rgb2 < 255) {
             this.rgb2 += 10;
-            this.something_changed = 1;
+            something_changed = 1;
         }
         if (this.rgb1 >= 255 && this.rgb2 >= 255 && this.rgb3 < 255) {
             this.rgb3 += 30;
-            this.something_changed = 1;
+            something_changed = 1;
         }
 
         /* Go to the next scene when we intercept that the key
            's' is being pressed. */
         if (this.gl.keys_state[83] == true) {
             clearInterval(this.timer);
+            something_changed = 0;  /* Avoid drawing when move() returns. */
             this.gl.next_scene();
         }
+
+        return something_changed;
     }
 }
 
@@ -178,7 +182,6 @@ function Intro(gl)
 function Game(gl)
 {
     this.gl = gl;
-    this.something_changed = 1;
     this.rows = 6
     this.cols = 7
     this.board_x = this.gl.W * 15 / 100;
@@ -188,22 +191,26 @@ function Game(gl)
 
     /* Create the kitten. */
     this.arrow = new Arrow(this, this.board_x, this.board_y,
-                           this.cellW, this.cellH);
+                           this.cellW, this.cellH, this.cols);
 
     this.animation_step = animation_step;
     function animation_step()
     {
-        /* Draw everything. */
-        this.draw();
-
         /* Move (update) everything. */
-        this.move();
+        var something_changed = this.move();
+
+        if (something_changed) {
+            /* Draw everything. */
+            this.draw();
+        }
     }
 
     this.start_scene = start_scene;
     function start_scene()
     {
         var that = this;
+
+        this.draw();
 
         this.timer = setInterval(function() {
                         that.animation_step();
@@ -213,11 +220,6 @@ function Game(gl)
     this.draw = draw;
     function draw()
     {
-        if (!this.something_changed) {
-            return;
-        }
-        this.something_changed = 0;
-
         var ctx = this.gl.canvas.getContext("2d");
 
         /* Draw the background */
@@ -277,32 +279,27 @@ function Game(gl)
     this.move = move;
     function move()
     {
-        this.something_changed = this.arrow.move();
+        return this.arrow.move();
     }
 }
 
 /* Arrow prototype */
-function Arrow(gm, board_x, board_y, cellW, cellH)
+function Arrow(gm, board_x, board_y, cellW, cellH, cols)
 {
     this.gm = gm;
-    this.something_changed = 1;
     this.cellW = cellW;
     this.cellH = cellH;
+    this.maxcol = cols - 1;
     this.h = 55;  /* Arrow height. */
     this.x = board_x + cellW/2 - 7;
     this.y = board_y - cellH/2 - this.h;
-    this.step = 7;
     this.left_state = 0;
     this.right_state = 0;
+    this.col = 0;
 
     this.draw = draw;
     function draw()
     {
-        if (!this.something_changed) {
-            return;
-        }
-        this.something_changed = 0;
-
         var ctx = this.gm.gl.canvas.getContext("2d");
 
         /* Draw the circle. */
@@ -322,31 +319,39 @@ function Arrow(gm, board_x, board_y, cellW, cellH)
     this.move = move;
     function move()
     {
-        if (this.left_state == 0) {
-            if (this.gm.gl.keys_state[37]) {
-                this.left_state = 1;
-            }
-        } else if (this.left_state == 1) {
-            if (!this.gm.gl.keys_state[37]) {
-                this.x -= this.cellW;
-                this.something_changed = 1;
-                this.left_state = 0;
+        var something_changed = 0;
+
+        if (this.col) {
+            if (this.left_state == 0) {
+                if (this.gm.gl.keys_state[37]) {
+                    this.left_state = 1;
+                }
+            } else if (this.left_state == 1) {
+                if (!this.gm.gl.keys_state[37]) {
+                    this.x -= this.cellW;
+                    this.col--;
+                    something_changed = 1;
+                    this.left_state = 0;
+                }
             }
         }
 
-        if (this.right_state == 0) {
-            if (this.gm.gl.keys_state[39]) {
-                this.right_state = 1;
-            }
-        } else if (this.right_state == 1) {
-            if (!this.gm.gl.keys_state[39]) {
-                this.x += this.cellW;
-                this.something_changed = 1;
-                this.right_state = 0;
+        if (this.col < this.maxcol) {
+            if (this.right_state == 0) {
+                if (this.gm.gl.keys_state[39]) {
+                    this.right_state = 1;
+                }
+            } else if (this.right_state == 1) {
+                if (!this.gm.gl.keys_state[39]) {
+                    this.x += this.cellW;
+                    this.col++;
+                    something_changed = 1;
+                    this.right_state = 0;
+                }
             }
         }
 
-        return this.something_changed;
+        return something_changed;
     }
 }
 
