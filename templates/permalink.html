@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>
+            Arnaccio Blog
+        </title>
+    </head>
+
+    <body>
+        <h2>
+            Welcome to Santa Croce sull'Arnaccio, Times New Roman 32
+        </h2>
+
+        <a href="../blog"> Pagina principale </a>
+
+        <hr>
+
+        <div>
+            <h4>
+                {{post.subject}}
+                ({{post.created.strftime("%b %d, %Y")}})
+            </h4>
+            <p> {{post.content.replace('\n', '<br>') | safe}} </p>
+        </div>
+    <body>
+</html>

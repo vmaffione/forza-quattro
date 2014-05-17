@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>
+            Submit a new post
+        </title>
+    </head>
+
+    <body>
+        <form method="post">
+            <h2>
+                Post a new subject
+            </h2>
+
+            <div> Subject </div>
+            <div>
+                    <input type="text" name="subject" value="{{subject}}">
+            </div>
+            <div> {{subject_err}} </div>
+            <br>
+
+            <div> Content </div>
+            <div>
+                <textarea style="width: 400px; height: 200px;" name="content">
+                    {{content}}
+                </textarea>
+            </div>
+            <div> {{content_err}} </div>
+            <br> <br>
+
+            <input type="submit">
+        </form>
+    <body>
+</html>
