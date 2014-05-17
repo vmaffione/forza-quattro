@@ -85,6 +85,7 @@ function make_rgb(r, g, b)
 function Intro(gl)
 {
     this.gl = gl;
+    this.something_changed = 1;
     this.rgb1 = 0;  /* RGB component for the first text */
     this.rgb2 = 0;  /* RGB component for the second text */
     this.rgb3 = 0;  /* RGB component for the third text */
@@ -110,6 +111,11 @@ function Intro(gl)
     this.draw = draw;
     function draw()
     {
+        if (!this.something_changed) {
+            return;
+        }
+        this.something_changed = 0;
+
         var ctx = this.gl.canvas.getContext("2d");
         var txt;
         var txt_width;
@@ -148,12 +154,15 @@ function Intro(gl)
     {
         if (this.rgb1 < 255) {
             this.rgb1 += 4;
+            this.something_changed = 1;
         }
         if (this.rgb1 >= 255 && this.rgb2 < 255) {
             this.rgb2 += 10;
+            this.something_changed = 1;
         }
         if (this.rgb1 >= 255 && this.rgb2 >= 255 && this.rgb3 < 255) {
             this.rgb3 += 30;
+            this.something_changed = 1;
         }
 
         /* Go to the next scene when we intercept that the key
@@ -169,6 +178,7 @@ function Intro(gl)
 function Game(gl)
 {
     this.gl = gl;
+    this.something_changed = 1;
     this.rows = 6
     this.cols = 7
     this.board_x = this.gl.W * 15 / 100;
@@ -203,6 +213,11 @@ function Game(gl)
     this.draw = draw;
     function draw()
     {
+        if (!this.something_changed) {
+            return;
+        }
+        this.something_changed = 0;
+
         var ctx = this.gl.canvas.getContext("2d");
 
         /* Draw the background */
@@ -262,7 +277,7 @@ function Game(gl)
     this.move = move;
     function move()
     {
-        this.arrow.move();
+        this.something_changed = this.arrow.move();
     }
 }
 
@@ -270,14 +285,24 @@ function Game(gl)
 function Arrow(gm, board_x, board_y, cellW, cellH)
 {
     this.gm = gm;
+    this.something_changed = 1;
+    this.cellW = cellW;
+    this.cellH = cellH;
     this.h = 55;  /* Arrow height. */
     this.x = board_x + cellW/2 - 7;
     this.y = board_y - cellH/2 - this.h;
     this.step = 7;
+    this.left_state = 0;
+    this.right_state = 0;
 
     this.draw = draw;
     function draw()
     {
+        if (!this.something_changed) {
+            return;
+        }
+        this.something_changed = 0;
+
         var ctx = this.gm.gl.canvas.getContext("2d");
 
         /* Draw the circle. */
@@ -297,19 +322,31 @@ function Arrow(gm, board_x, board_y, cellW, cellH)
     this.move = move;
     function move()
     {
-        /* Update the center position. */
-        if (this.gm.gl.keys_state[37] && this.x > 0) {
-            this.x -= this.step;
+        if (this.left_state == 0) {
+            if (this.gm.gl.keys_state[37]) {
+                this.left_state = 1;
+            }
+        } else if (this.left_state == 1) {
+            if (!this.gm.gl.keys_state[37]) {
+                this.x -= this.cellW;
+                this.something_changed = 1;
+                this.left_state = 0;
+            }
         }
-        if (this.gm.gl.keys_state[38] && this.y > 0) {
-            this.y -= this.step;
+
+        if (this.right_state == 0) {
+            if (this.gm.gl.keys_state[39]) {
+                this.right_state = 1;
+            }
+        } else if (this.right_state == 1) {
+            if (!this.gm.gl.keys_state[39]) {
+                this.x += this.cellW;
+                this.something_changed = 1;
+                this.right_state = 0;
+            }
         }
-        if (this.gm.gl.keys_state[39] && this.x < this.gm.gl.W) {
-            this.x += this.step;
-        }
-        if (this.gm.gl.keys_state[40] && this.y < this.gm.gl.H) {
-            this.y += this.step;
-        }
+
+        return this.something_changed;
     }
 }
 
