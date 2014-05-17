@@ -189,9 +189,20 @@ function Game(gl)
     this.cellW = this.gl.W * 70/100 / this.cols;
     this.cellH = this.gl.H * 70/100 / this.rows;
 
-    /* Create the kitten. */
+    /* Create the arrow. */
     this.arrow = new Arrow(this, this.board_x, this.board_y,
                            this.cellW, this.cellH, this.cols);
+
+    this.state = new Array(this.rows);
+    for (var i = 0; i < this.rows; i++) {
+        this.state[i] = new Array(this.cols)
+        for (var j = 0; j < this.cols; j++) {
+            this.state[i][j] = 0;
+        }
+    }
+    this.enter_state = 0;
+    this.space_state = 0;
+    this.player = 1;
 
     this.animation_step = animation_step;
     function animation_step()
@@ -258,7 +269,6 @@ function Game(gl)
         radius = this.cellW * 4/10;
         if (radius > this.cellH * 4/10)
             radius = this.cellH * 4/10;
-        ctx.fillStyle = make_rgb(0, 0, 0);
         ctx.strokeStyle = make_rgb(255, 100, 0)
         ctx.lineWidth = this.cellW/40;
         for (var i = 0; i < this.rows; i++) {
@@ -267,6 +277,13 @@ function Game(gl)
                 ctx.arc(this.board_x + this.cellW * j + this.cellW/2,
                         this.board_y + this.cellH * i + this.cellH/2,
                         radius, 0, 2 * Math.PI)
+                if (this.state[i][j] == 0) {
+                    ctx.fillStyle = make_rgb(0, 0, 0);
+                } else if (this.state[i][j] == 1) {
+                    ctx.fillStyle = make_rgb(255, 0, 0);
+                } else {
+                    ctx.fillStyle = make_rgb(0, 0, 255);
+                }
                 ctx.fill();
                 ctx.stroke();
             }
@@ -279,7 +296,55 @@ function Game(gl)
     this.move = move;
     function move()
     {
-        return this.arrow.move();
+        var something_changed = this.arrow.move();
+
+        /* User presses 'Enter'. */
+        if (this.enter_state == 0) {
+            if (this.gl.keys_state[13]) {
+                this.enter_state = 1;
+            }
+        } else {  /* this.enter_state == 1 */
+            if (!this.gl.keys_state[13]) {
+                var row = this.rows - 1;
+
+                while (row >= 0 && this.state[row][this.arrow.col]) {
+                    row--;
+                }
+                if (row >= 0) {
+                    this.state[row][this.arrow.col] = this.player;
+                    this.player = 3 - this.player;
+                    something_changed = 1;
+                }
+
+                this.enter_state = 0;
+            }
+        }
+
+        /* User presses 'Space'. */
+        if (this.space_state == 0) {
+            if (this.gl.keys_state[32]) {
+                this.space_state = 1;
+            }
+        } else {  /* this.space_state == 1 */
+            if (!this.gl.keys_state[32]) {
+                var row = this.rows - 1;
+
+                if (this.state[row][this.arrow.col] == this.player) {
+                    while (row > 0) {
+                        this.state[row][this.arrow.col] =
+                                this.state[row-1][this.arrow.col];
+                        row--;
+                    }
+                    this.state[0][this.arrow.col] = 0;
+                    this.player = 3 - this.player;
+                    something_changed = 1;
+                }
+
+                this.space_state = 0;
+            }
+        }
+
+        return something_changed;
     }
 }
 
