@@ -203,6 +203,7 @@ function Game(gl)
     this.enter_state = 0;
     this.space_state = 0;
     this.player = 1;
+    this.moves = 0;
 
     this.animation_step = animation_step;
     function animation_step()
@@ -232,17 +233,23 @@ function Game(gl)
     function draw()
     {
         var ctx = this.gl.canvas.getContext("2d");
+        var name;
 
         /* Draw the background */
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, this.gl.W, this.gl.H);
 
         /* Draw status info. */
-        txt = "Status1: " + 1392;
+        if (this.player == 1) {
+            name = "Rosso";
+        } else {
+            name = "Blu";
+        }
+        txt = "Prossima mossa: " + name;
         ctx.font = "16px Arial";
         ctx.fillStyle = '#FFFFFF';
         ctx.fillText(txt, 20, 30);
-        txt = "Status2: " + 3241;
+        txt = "Mosse eseguite: " + this.moves;
         ctx.fillText(txt, 20, 54);
         /* Debug variables:
         txt = "(interns): " + this.guys.length + " " + this.disap_guys.length;
@@ -313,6 +320,7 @@ function Game(gl)
                 if (row >= 0) {
                     this.state[row][this.arrow.col] = this.player;
                     this.player = 3 - this.player;
+                    this.moves++;
                     something_changed = 1;
                 }
 
@@ -337,6 +345,7 @@ function Game(gl)
                     }
                     this.state[0][this.arrow.col] = 0;
                     this.player = 3 - this.player;
+                    this.moves++;
                     something_changed = 1;
                 }
 
