@@ -178,6 +178,20 @@ function Intro(gl)
     }
 }
 
+function update_to_server(player, col, move)
+{
+    return;
+    req = new XMLHttpRequest();
+    req.open("POST", "updateto", true);
+    req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    req.onreadystatechange = function () {
+        if (req.readyState == 4 && req.status == 200) {
+            window.alert(req.responseText);
+        }
+    }
+    req.send("col=" + col + "&move=" + move);
+}
+
 /* A prototype representing the game scene. */
 function Game(gl)
 {
@@ -319,6 +333,7 @@ function Game(gl)
                 }
                 if (row >= 0) {
                     this.state[row][this.arrow.col] = this.player;
+                    update_to_server(this.player, this.arrow.col, 'push');
                     this.player = 3 - this.player;
                     this.moves++;
                     something_changed = 1;
@@ -344,6 +359,7 @@ function Game(gl)
                         row--;
                     }
                     this.state[0][this.arrow.col] = 0;
+                    update_to_server(this.player, this.arrow.col, 'pop');
                     this.player = 3 - this.player;
                     this.moves++;
                     something_changed = 1;
