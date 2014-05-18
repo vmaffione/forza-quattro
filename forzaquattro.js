@@ -37,6 +37,8 @@ function Global()
     for (var i=0; i<128; i++) {
         this.keys_state[i] = false;
     }
+    this.keys_queue = "";
+    this.username = "";
 
     /* Array of game scenes. */
     this.scenes = new Array();
@@ -142,7 +144,7 @@ function Intro(gl)
         if (this.rgb3) {
             ctx.fillStyle = make_rgb(this.rgb3, this.rgb3, this.rgb3);
             ctx.font = "12px Arial";
-            txt = "Premi 's' per iniziare";
+            txt = "Inserisci la parola d'ordine e premi 'Spazio' per iniziare";
             txt_width = ctx.measureText(txt).width;
             ctx.fillText(txt, (this.gl.W - txt_width)/2, this.gl.H - 30);
         }
@@ -168,9 +170,10 @@ function Intro(gl)
 
         /* Go to the next scene when we intercept that the key
            's' is being pressed. */
-        if (this.gl.keys_state[83] == true) {
+        if (this.gl.keys_state[32] == true) {
             clearInterval(this.timer);
             something_changed = 0;  /* Avoid drawing when move() returns. */
+            this.gl.username = this.gl.keys_queue;
             this.gl.next_scene();
         }
 
@@ -178,16 +181,31 @@ function Intro(gl)
     }
 }
 
-function update_to_server(player, col, move)
+function post_start_msg(game)
 {
     req = new XMLHttpRequest();
-    req.open("POST", "forzaquattro", true);
+    req.open("POST", "forzaquattro/start", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
+            game.match_started = true;
+            window.alert("Game started!")
         }
     }
-    req.send("col=" + col + "&move=" + move);
+    req.send("player=" + game.gl.username);
+}
+
+function post_move_msg(game, col, move)
+{
+    req = new XMLHttpRequest();
+    req.open("POST", "forzaquattro/move", true);
+    req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    req.onreadystatechange = function () {
+        if (req.readyState == 4 && req.status == 200) {
+            //window.alert(req.responseText);
+        }
+    }
+    req.send("player=" + game.gl.username + "&col=" + col + "&move=" + move);
 }
 
 /* A prototype representing the game scene. */
@@ -216,6 +234,7 @@ function Game(gl)
     this.space_state = 0;
     this.player = 1;
     this.moves = 0;
+    this.match_started = false;
 
     this.animation_step = animation_step;
     function animation_step()
@@ -239,6 +258,8 @@ function Game(gl)
         this.timer = setInterval(function() {
                         that.animation_step();
                    }, 1000 / 60);
+
+        post_start_msg(this);
    }
 
     this.draw = draw;
@@ -331,7 +352,7 @@ function Game(gl)
                 }
                 if (row >= 0) {
                     this.state[row][this.arrow.col] = this.player;
-                    update_to_server(this.player, this.arrow.col, 'push');
+                    post_move_msg(this, this.arrow.col, 'push');
                     this.player = 3 - this.player;
                     this.moves++;
                     something_changed = 1;
@@ -357,7 +378,7 @@ function Game(gl)
                         row--;
                     }
                     this.state[0][this.arrow.col] = 0;
-                    update_to_server(this.player, this.arrow.col, 'pop');
+                    post_move_msg(this, this.arrow.col, 'pop');
                     this.player = 3 - this.player;
                     this.moves++;
                     something_changed = 1;
@@ -454,6 +475,12 @@ function onload()
 /* Record that the key is now not pressed. */
 function bodyKeyUp(e)
 {
+    if (g.keys_state[e.keyCode]) {
+        g.keys_queue += String.fromCharCode(e.keyCode);
+        if (g.keys_queue.length >= 10) {
+            g.keys_queue.slice(1, g.keys_queue.length);
+        }
+    }
     g.keys_state[e.keyCode] = false;
 }
 

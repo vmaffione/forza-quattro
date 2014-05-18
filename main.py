@@ -20,5 +20,7 @@ application = webapp2.WSGIApplication([
     (r'/blog/newpost', blog.BlogPostHandler),
     (r'/blog/?', blog.BlogHandler),
     (r'/blog/(\d+)', blog.BlogPermalink),
-    (r'/forzaquattro', forzaquattro.Main),
+    (r'/forzaquattro/start', forzaquattro.Start),
+    (r'/forzaquattro/move', forzaquattro.Move),
+    (r'/forzaquattro/poll', forzaquattro.Poll),
     ], debug = True)
