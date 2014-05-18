@@ -3,6 +3,7 @@ import cgi
 import re
 
 import signup, rot13, birthday, blog
+import forzaquattro
 
 
 class ThanksHandler(webapp2.RequestHandler):
@@ -19,4 +20,5 @@ application = webapp2.WSGIApplication([
     (r'/blog/newpost', blog.BlogPostHandler),
     (r'/blog/?', blog.BlogHandler),
     (r'/blog/(\d+)', blog.BlogPermalink),
+    (r'/forzaquattro', forzaquattro.Main),
     ], debug = True)

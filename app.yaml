@@ -9,6 +9,10 @@ libraries:
   version: latest
 
 handlers:
+- url: /forzaquattro\.(html|js)$
+  static_files: forzaquattro.\1
+  upload: forzaquattro\.(html|js)$
+
 - url: /.*
   script: main.application
 

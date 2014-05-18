@@ -180,13 +180,11 @@ function Intro(gl)
 
 function update_to_server(player, col, move)
 {
-    return;
     req = new XMLHttpRequest();
-    req.open("POST", "updateto", true);
+    req.open("POST", "forzaquattro", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
-            window.alert(req.responseText);
         }
     }
     req.send("col=" + col + "&move=" + move);
