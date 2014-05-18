@@ -21,51 +21,67 @@ class User2Event(db.Model):
 
 class Base(webapp2.RequestHandler):
     def put_event(self, c):
-        player = self.request.get('player')
+        player = self.request.get('player').upper()
         if player == USER2:
             event = User2Event(content = c)
+            color = '1'
         elif player == USER1:
             event = User1Event(content = c)
+            color = '2'
         else:
             event = None
+            color = ''
 
         if event:
-            self.response.out.write('OK')
             event.put()
-        else:
-            self.response.out.write('KO')
 
+        return color
 
-class Move(Base):
-    def post(self):
-        col = self.request.get('col');
-        move = self.request.get('move');
-
-        self.put_event(col + ' ' + move)
-        pass
-
-
-class Start(Base):
-    def post(self):
-        self.put_event('started')
-
-
-class Poll(webapp2.RequestHandler):
-    def post(self):
-        player = self.request.get('player')
+    def drain_events(self, mine):
+        player = self.request.get('player').upper()
         if player == USER2:
-            q = User1Event.all()
+            color = '2'
+            if not mine:
+                q = User1Event.all()
+            else:
+                q = User2Event.all()
         elif player == USER1:
-            q = User2Event.all()
+            color = '1'
+            if not mine:
+                q = User2Event.all()
+            else:
+                q = User1Event.all()
         else:
             q = None
+            color = ''
 
         result = ''
-
         if q:
             for event in q:
                 result += event.content + ','
                 event.delete()
 
-        self.response.out.write(result)
+        return color, result
+
+
+class Move(Base):
+    def post(self):
+        col = self.request.get('col')
+        move = self.request.get('move')
+
+        color = self.put_event(col + ' ' + move)
+        self.response.out.write(color)
+
+
+class Start(Base):
+    def post(self):
+        # clean up leftovers
+        color, events = self.drain_events(mine = True)
+        self.response.out.write(color)
+
+
+class Poll(Base):
+    def post(self):
+        color, events = self.drain_events(mine = False)
+        self.response.out.write(events)
 

@@ -188,8 +188,13 @@ function post_start_msg(game)
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
-            game.match_started = true;
-            window.alert("Game started!")
+            if (req.responseText != "") {
+                game.match_started = true;
+                game.player_id_mine = parseInt(req.responseText);
+            }
+            if (game.player_id_mine == 0) {
+                window.alert("Tu non puoi giocare, non conosci la chiave!");
+            }
         }
     }
     req.send("player=" + game.gl.username);
@@ -200,12 +205,34 @@ function post_move_msg(game, col, move)
     req = new XMLHttpRequest();
     req.open("POST", "forzaquattro/move", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    req.send("player=" + game.gl.username + "&col=" + col + "&move=" + move);
+}
+
+function post_poll_msg(game)
+{
+    req = new XMLHttpRequest();
+    req.open("POST", "forzaquattro/poll", true);
+    req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
-            //window.alert(req.responseText);
+            events = req.responseText.split(",");
+            for (var i = 0; i < events.length; i++) {
+                cmd = events[i].split(" ");
+                if (cmd.length != 2) {
+                    continue;
+                }
+                col = parseInt(cmd[0]);
+                if (cmd[1] == "push") {
+                    game.push(col);
+                    game.force_draw = true;
+                } else if (cmd[1] == "pop") {
+                    game.pop(col);
+                    game.force_draw = true;
+                }
+            }
         }
     }
-    req.send("player=" + game.gl.username + "&col=" + col + "&move=" + move);
+    req.send("player=" + game.gl.username);
 }
 
 /* A prototype representing the game scene. */
@@ -232,8 +259,11 @@ function Game(gl)
     }
     this.enter_state = 0;
     this.space_state = 0;
-    this.player = 1;
+    this.r_state = 0;
+    this.player_id_mine = 0;
+    this.player_id_curr = 1;
     this.moves = 0;
+    this.force_draw = false;
     this.match_started = false;
 
     this.animation_step = animation_step;
@@ -242,8 +272,9 @@ function Game(gl)
         /* Move (update) everything. */
         var something_changed = this.move();
 
-        if (something_changed) {
+        if (something_changed || this.force_draw) {
             /* Draw everything. */
+            this.force_draw = false;
             this.draw();
         }
     }
@@ -273,7 +304,7 @@ function Game(gl)
         ctx.fillRect(0, 0, this.gl.W, this.gl.H);
 
         /* Draw status info. */
-        if (this.player == 1) {
+        if (this.player_id_curr == 1) {
             name = "Rosso";
         } else {
             name = "Blu";
@@ -333,6 +364,38 @@ function Game(gl)
         this.arrow.draw();
     }
 
+    this.push = push;
+    function push(col)
+    {
+        var row = this.rows - 1;
+
+        while (row >= 0 && this.state[row][col]) {
+            row--;
+        }
+        if (row >= 0) {
+            this.state[row][col] = this.player_id_curr;
+            this.player_id_curr = 3 - this.player_id_curr;
+            this.moves++;
+        }
+    }
+
+    this.pop = pop;
+    function pop(col)
+    {
+        var row = this.rows - 1;
+
+        if (this.state[row][col] == this.player_id_curr) {
+            while (row > 0) {
+                this.state[row][col] =
+                    this.state[row-1][col];
+                row--;
+            }
+            this.state[0][col] = 0;
+            this.player_id_curr = 3 - this.player_id_curr;
+            this.moves++;
+        }
+    }
+
     this.move = move;
     function move()
     {
@@ -345,19 +408,12 @@ function Game(gl)
             }
         } else {  /* this.enter_state == 1 */
             if (!this.gl.keys_state[13]) {
-                var row = this.rows - 1;
-
-                while (row >= 0 && this.state[row][this.arrow.col]) {
-                    row--;
-                }
-                if (row >= 0) {
-                    this.state[row][this.arrow.col] = this.player;
-                    post_move_msg(this, this.arrow.col, 'push');
-                    this.player = 3 - this.player;
-                    this.moves++;
+                if (this.player_id_curr == this.player_id_mine) {
+                    col = this.arrow.col;
+                    this.push(col);
+                    post_move_msg(this, col, 'push');
                     something_changed = 1;
                 }
-
                 this.enter_state = 0;
             }
         }
@@ -369,22 +425,26 @@ function Game(gl)
             }
         } else {  /* this.space_state == 1 */
             if (!this.gl.keys_state[32]) {
-                var row = this.rows - 1;
-
-                if (this.state[row][this.arrow.col] == this.player) {
-                    while (row > 0) {
-                        this.state[row][this.arrow.col] =
-                                this.state[row-1][this.arrow.col];
-                        row--;
-                    }
-                    this.state[0][this.arrow.col] = 0;
-                    post_move_msg(this, this.arrow.col, 'pop');
-                    this.player = 3 - this.player;
-                    this.moves++;
+                if (this.player_id_curr == this.player_id_mine) {
+                    col = this.arrow.col;
+                    this.pop(col)
+                    post_move_msg(this, col, 'pop');
                     something_changed = 1;
                 }
-
                 this.space_state = 0;
+            }
+        }
+
+        /* User presses 'r' to refresh. */
+        if (this.r_state == 0) {
+            if (this.gl.keys_state[82]) {
+                this.r_state = 1;
+            }
+        } else {  /* this.space_state == 1 */
+            if (!this.gl.keys_state[82]) {
+                this.r_state = 0;
+                post_poll_msg(this);
+                something_changed = 1;
             }
         }
 
