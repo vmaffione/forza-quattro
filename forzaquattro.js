@@ -216,7 +216,11 @@ function post_poll_msg(game)
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
             events = req.responseText.split(",");
-            for (var i = 0; i < events.length; i++) {
+            player_id_other = events[0];
+            if (player_id_other == game.player_id_mine) {
+                return;
+            }
+            for (var i = 1; i < events.length; i++) {
                 cmd = events[i].split(" ");
                 if (cmd.length != 2) {
                     continue;

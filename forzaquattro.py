@@ -40,17 +40,19 @@ class Base(webapp2.RequestHandler):
     def drain_events(self, mine):
         player = self.request.get('player').upper()
         if player == USER2:
-            color = '2'
             if not mine:
                 q = User1Event.all()
+                color = '1'
             else:
                 q = User2Event.all()
+                color = '2'
         elif player == USER1:
-            color = '1'
             if not mine:
                 q = User2Event.all()
+                color = '2'
             else:
                 q = User1Event.all()
+                color = '1'
         else:
             q = None
             color = ''
@@ -83,5 +85,5 @@ class Start(Base):
 class Poll(Base):
     def post(self):
         color, events = self.drain_events(mine = False)
-        self.response.out.write(events)
+        self.response.out.write(color + ',' + events)
 
