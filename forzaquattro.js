@@ -672,18 +672,18 @@ function Arrow(gm, board_x, board_y, cellW, cellH, cols)
     {
         var something_changed = 0;
 
-        if (this.col) {
-            if (this.gm.gl.keys_pending[37]) {
-                this.gm.gl.keys_pending[37] = false;
+        if (this.gm.gl.keys_pending[37]) {
+            this.gm.gl.keys_pending[37] = false;
+            if (this.col) {
                 this.x -= this.cellW;
                 this.col--;
                 something_changed = 1;
             }
         }
 
-        if (this.col < this.maxcol) {
-            if (this.gm.gl.keys_pending[39]) {
-                this.gm.gl.keys_pending[39] = false;
+        if (this.gm.gl.keys_pending[39]) {
+            this.gm.gl.keys_pending[39] = false;
+            if (this.col < this.maxcol) {
                 this.x += this.cellW;
                 this.col++;
                 something_changed = 1;
