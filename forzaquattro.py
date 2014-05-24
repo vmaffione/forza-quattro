@@ -70,8 +70,9 @@ class Move(Base):
     def post(self):
         col = self.request.get('col')
         move = self.request.get('move')
+        seqnum = self.request.get('seqnum')
 
-        color = self.put_event(col + ' ' + move)
+        color = self.put_event(col + ' ' + move + ' ' + seqnum)
         self.response.out.write(color)
 
 

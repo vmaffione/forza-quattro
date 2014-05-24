@@ -206,7 +206,7 @@ function post_move_msg(game, col, move)
     req = new XMLHttpRequest();
     req.open("POST", "forzaquattro/move", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    req.send("player=" + game.gl.username + "&col=" + col + "&move=" + move);
+    req.send("player=" + game.gl.username + "&col=" + col + "&move=" + move + "&seqnum=" + game.seqnum);
 }
 
 function post_poll_msg(game)
@@ -223,10 +223,15 @@ function post_poll_msg(game)
             }
             for (var i = 1; i < events.length; i++) {
                 cmd = events[i].split(" ");
-                if (cmd.length != 2) {
+                if (cmd.length != 3) {
                     continue;
                 }
                 col = parseInt(cmd[0]);
+                seqnum = parseInt(cmd[2]);
+                if (seqnum != game.seqnum + 1) {
+                    /* Sequencing error, let's reset. */
+                    game.reset();
+                }
                 if (cmd[1] == "push") {
                     game.push(col);
                     game.force_draw = true;
@@ -262,16 +267,6 @@ function Game(gl)
             this.state[i][j] = 0;
         }
     }
-    this.player_id_mine = 0;
-    this.player_id_curr = 1;
-    this.moves = 0;
-    this.victory_counter = [0, 0, 0];
-    this.victory_cells = Array(4);
-    this.victory_on = false;
-    this.victory_color_step = 6;
-    this.victory_color = 50;
-    this.force_draw = false;
-
 
     this.animation_step = animation_step;
     function animation_step()
@@ -291,6 +286,7 @@ function Game(gl)
     {
         var that = this;
 
+        this.reset();
         this.draw();
 
         this.timer = setInterval(function() {
@@ -326,6 +322,8 @@ function Game(gl)
         ctx.fillText(txt, 20, 78);
         txt = "Vittorie blu:   " + this.victory_counter[2];
         ctx.fillText(txt, 20, 102);
+        txt = "Sequenza:   " + this.seqnum;
+        ctx.fillText(txt, 20, 126);
 
         /* Draw hints. */
         ctx.fillStyle = make_rgb(255, 255, 255);
@@ -404,6 +402,7 @@ function Game(gl)
             this.moves = 0;
         }
         this.player_id_curr = 3 - this.player_id_curr;
+        this.seqnum++;
     }
 
     this.check_victory = check_victory;
@@ -553,6 +552,32 @@ function Game(gl)
         }
     }
 
+    this.reset = reset;
+    function reset()
+    {
+        this.reset_state();
+        this.player_id_mine = 0;
+        this.player_id_curr = 1;
+        this.moves = 0;
+        this.victory_counter = [0, 0, 0];
+        this.victory_cells = Array(4);
+        this.victory_on = false;
+        this.victory_color_step = 6;
+        this.victory_color = 50;
+        this.force_draw = false;
+        this.seqnum = 0;
+    }
+
+    this.reset_state = reset_state;
+    function reset_state()
+    {
+        for (var i = 0; i < this.rows; i++) {
+            for (var j = 0; j < this.cols; j++) {
+                this.state[i][j] = 0;
+            }
+        }
+    }
+
     this.move = move;
     function move()
     {
@@ -563,11 +588,7 @@ function Game(gl)
             this.gl.keys_pending[13] = false;
             if (this.victory_on) {
                 /* Reset after a victory. */
-                for (var i = 0; i < this.rows; i++) {
-                    for (var j = 0; j < this.cols; j++) {
-                        this.state[i][j] = 0;
-                    }
-                }
+                this.reset_state();
                 this.victory_on = false;
                 something_changed = 1;
             } else if (this.player_id_curr == this.player_id_mine) {
@@ -583,8 +604,8 @@ function Game(gl)
             this.gl.keys_pending[32] = false;
             if (this.player_id_curr == this.player_id_mine) {
                 col = this.arrow.col;
-                this.pop(col)
-                    post_move_msg(this, col, 'pop');
+                this.pop(col);
+                post_move_msg(this, col, 'pop');
                 something_changed = 1;
             }
         }
