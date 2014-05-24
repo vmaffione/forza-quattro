@@ -269,6 +269,8 @@ function Game(gl)
     this.victory_counter = [0, 0, 0];
     this.victory_cells = Array(4);
     this.victory_on = false;
+    this.victory_color_step = 6;
+    this.victory_color = 50;
     this.force_draw = false;
 
 
@@ -350,10 +352,10 @@ function Game(gl)
         ctx.lineWidth = this.cellW/40;
         for (var i = 0; i < this.rows; i++) {
             for (var j = 0; j < this.cols; j++) {
-                ctx.beginPath()
+                ctx.beginPath();
                 ctx.arc(this.board_x + this.cellW * j + this.cellW/2,
                         this.board_y + this.cellH * i + this.cellH/2,
-                        radius, 0, 2 * Math.PI)
+                        radius, 0, 2 * Math.PI);
                 if (this.state[i][j] == 0) {
                     ctx.fillStyle = make_rgb(0, 0, 0);
                 } else if (this.state[i][j] == 1) {
@@ -365,19 +367,44 @@ function Game(gl)
                 ctx.stroke();
             }
         }
+        if (this.victory_on) {
+            for (var v = 0; v < this.victory_cells.length; v++) {
+                var i = this.victory_cells[v][0];
+                var j = this.victory_cells[v][1];
 
-        /* Draw the kitten. */
+                ctx.beginPath();
+                ctx.arc(this.board_x + this.cellW * j + this.cellW/2,
+                        this.board_y + this.cellH * i + this.cellH/2,
+                        radius, 0, 2 * Math.PI);
+                if (this.state[i][j] == 1) {
+                    ctx.fillStyle = make_rgb(255,
+                                             this.victory_color,
+                                             this.victory_color);
+                } else {
+                    ctx.fillStyle = make_rgb(this.victory_color,
+                                             this.victory_color,
+                                             255);
+                }
+                ctx.fill();
+            }
+        }
+
+        /* Draw the arrow. */
         this.arrow.draw();
     }
 
-    this.victory = victory;
-    function victory(player)
+    this.update_game = update_game;
+    function update_game()
     {
+        var player = this.player_id_curr;
+
+        this.moves++;
         this.victory_on = this.check_victory(player);
         if (this.victory_on) {
             this.victory_counter[player]++;
             this.moves = 0;
         }
+        this.player_id_curr = 3 - this.player_id_curr;
     }
 
     this.check_victory = check_victory;
@@ -507,9 +534,7 @@ function Game(gl)
         }
         if (row >= 0) {
             this.state[row][col] = this.player_id_curr;
-            this.moves++;
-            this.victory(this.player_id_curr);
-            this.player_id_curr = 3 - this.player_id_curr;
+            this.update_game();
         }
     }
 
@@ -525,9 +550,7 @@ function Game(gl)
                 row--;
             }
             this.state[0][col] = 0;
-            this.moves++;
-            this.victory(this.player_id_curr);
-            this.player_id_curr = 3 - this.player_id_curr;
+            this.update_game();
         }
     }
 
@@ -587,9 +610,24 @@ function Game(gl)
         } else {  /* this.space_state == 1 */
             if (!this.gl.keys_state[82]) {
                 this.r_state = 0;
-                post_poll_msg(this);
-                something_changed = 1;
+                if (!this.victory_on) {
+                    /* Avoid considering the other's moves belonging
+                       to the next match, while still the player has
+                       to press Enter in order to exit from the 'victory_on'
+                       state.
+                    */
+                    post_poll_msg(this);
+                    something_changed = 1;
+                }
             }
+        }
+
+        if (this.victory_on) {
+            if (this.victory_color < 10 || this.victory_color > 245) {
+                this.victory_color_step *= -1;
+            }
+            this.victory_color += this.victory_color_step;
+            something_changed = 1;
         }
 
         return something_changed;
