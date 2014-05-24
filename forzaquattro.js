@@ -33,9 +33,11 @@ function Global()
     resize(this);
 
     /* Track the "pressed" state of keyboard keys. */
-    this.keys_state = new Array();
+    this.keys_state = new Array(128);
+    this.keys_pending = new Array(128);
     for (var i=0; i<128; i++) {
         this.keys_state[i] = false;
+        this.keys_pending[i] = false;
     }
     this.keys_queue = "";
     this.username = "";
@@ -260,9 +262,6 @@ function Game(gl)
             this.state[i][j] = 0;
         }
     }
-    this.enter_state = 0;
-    this.space_state = 0;
-    this.r_state = 0;
     this.player_id_mine = 0;
     this.player_id_curr = 1;
     this.moves = 0;
@@ -560,65 +559,47 @@ function Game(gl)
         var something_changed = this.arrow.move();
 
         /* User presses 'Enter'. */
-        if (this.enter_state == 0) {
-            if (this.gl.keys_state[13]) {
-                this.enter_state = 1;
-            }
-        } else {  /* this.enter_state == 1 */
-            if (!this.gl.keys_state[13]) {
-                if (this.victory_on) {
-                    /* Reset after a victory. */
-                    for (var i = 0; i < this.rows; i++) {
-                        for (var j = 0; j < this.cols; j++) {
-                            this.state[i][j] = 0;
-                        }
+        if (this.gl.keys_pending[13]) {
+            this.gl.keys_pending[13] = false;
+            if (this.victory_on) {
+                /* Reset after a victory. */
+                for (var i = 0; i < this.rows; i++) {
+                    for (var j = 0; j < this.cols; j++) {
+                        this.state[i][j] = 0;
                     }
-                    this.victory_on = false;
-                    something_changed = 1;
-                } else if (this.player_id_curr == this.player_id_mine) {
-                    col = this.arrow.col;
-                    this.push(col);
-                    post_move_msg(this, col, 'push');
-                    something_changed = 1;
                 }
-                this.enter_state = 0;
+                this.victory_on = false;
+                something_changed = 1;
+            } else if (this.player_id_curr == this.player_id_mine) {
+                col = this.arrow.col;
+                this.push(col);
+                post_move_msg(this, col, 'push');
+                something_changed = 1;
             }
         }
 
         /* User presses 'Space'. */
-        if (this.space_state == 0) {
-            if (this.gl.keys_state[32]) {
-                this.space_state = 1;
-            }
-        } else {  /* this.space_state == 1 */
-            if (!this.gl.keys_state[32]) {
-                if (this.player_id_curr == this.player_id_mine) {
-                    col = this.arrow.col;
-                    this.pop(col)
+        if (this.gl.keys_pending[32]) {
+            this.gl.keys_pending[32] = false;
+            if (this.player_id_curr == this.player_id_mine) {
+                col = this.arrow.col;
+                this.pop(col)
                     post_move_msg(this, col, 'pop');
-                    something_changed = 1;
-                }
-                this.space_state = 0;
+                something_changed = 1;
             }
         }
 
         /* User presses 'r' to refresh. */
-        if (this.r_state == 0) {
-            if (this.gl.keys_state[82]) {
-                this.r_state = 1;
-            }
-        } else {  /* this.space_state == 1 */
-            if (!this.gl.keys_state[82]) {
-                this.r_state = 0;
-                if (!this.victory_on) {
-                    /* Avoid considering the other's moves belonging
-                       to the next match, while still the player has
-                       to press Enter in order to exit from the 'victory_on'
-                       state.
-                    */
-                    post_poll_msg(this);
-                    something_changed = 1;
-                }
+        if (this.gl.keys_pending[82]) {
+            this.gl.keys_pending[82] = false;
+            if (!this.victory_on) {
+                /* Avoid considering the other's moves belonging
+                   to the next match, while still the player has
+                   to press Enter in order to exit from the 'victory_on'
+                   state.
+                   */
+                post_poll_msg(this);
+                something_changed = 1;
             }
         }
 
@@ -644,8 +625,6 @@ function Arrow(gm, board_x, board_y, cellW, cellH, cols)
     this.h = 55;  /* Arrow height. */
     this.x = board_x + cellW/2 - 7;
     this.y = board_y - cellH/2 - this.h;
-    this.left_state = 0;
-    this.right_state = 0;
     this.col = 0;
 
     this.draw = draw;
@@ -673,32 +652,20 @@ function Arrow(gm, board_x, board_y, cellW, cellH, cols)
         var something_changed = 0;
 
         if (this.col) {
-            if (this.left_state == 0) {
-                if (this.gm.gl.keys_state[37]) {
-                    this.left_state = 1;
-                }
-            } else if (this.left_state == 1) {
-                if (!this.gm.gl.keys_state[37]) {
-                    this.x -= this.cellW;
-                    this.col--;
-                    something_changed = 1;
-                    this.left_state = 0;
-                }
+            if (this.gm.gl.keys_pending[37]) {
+                this.gm.gl.keys_pending[37] = false;
+                this.x -= this.cellW;
+                this.col--;
+                something_changed = 1;
             }
         }
 
         if (this.col < this.maxcol) {
-            if (this.right_state == 0) {
-                if (this.gm.gl.keys_state[39]) {
-                    this.right_state = 1;
-                }
-            } else if (this.right_state == 1) {
-                if (!this.gm.gl.keys_state[39]) {
-                    this.x += this.cellW;
-                    this.col++;
-                    something_changed = 1;
-                    this.right_state = 0;
-                }
+            if (this.gm.gl.keys_pending[39]) {
+                this.gm.gl.keys_pending[39] = false;
+                this.x += this.cellW;
+                this.col++;
+                something_changed = 1;
             }
         }
 
@@ -730,4 +697,5 @@ function bodyKeyUp(e)
 function bodyKeyDown(e)
 {
     g.keys_state[e.keyCode] = true;
+    g.keys_pending[e.keyCode] = true;
 }
