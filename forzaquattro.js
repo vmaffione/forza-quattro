@@ -266,7 +266,11 @@ function Game(gl)
     this.player_id_mine = 0;
     this.player_id_curr = 1;
     this.moves = 0;
+    this.victory_counter = [0, 0, 0];
+    this.victory_cells = Array(4);
+    this.victory_on = false;
     this.force_draw = false;
+
 
     this.animation_step = animation_step;
     function animation_step()
@@ -317,10 +321,10 @@ function Game(gl)
         ctx.fillText(txt, 20, 30);
         txt = "Mosse eseguite: " + this.moves;
         ctx.fillText(txt, 20, 54);
-        /* Debug variables:
-        txt = "(interns): " + this.guys.length + " " + this.disap_guys.length;
-        ctx.fillText(txt, 20, 70);
-        */
+        txt = "Vittorie rosse: " + this.victory_counter[1];
+        ctx.fillText(txt, 20, 78);
+        txt = "Vittorie blu:   " + this.victory_counter[2];
+        ctx.fillText(txt, 20, 102);
 
         /* Draw hints. */
         ctx.fillStyle = make_rgb(255, 255, 255);
@@ -369,6 +373,16 @@ function Game(gl)
     this.victory = victory;
     function victory(player)
     {
+        this.victory_on = this.check_victory(player);
+        if (this.victory_on) {
+            this.victory_counter[player]++;
+            this.moves = 0;
+        }
+    }
+
+    this.check_victory = check_victory;
+    function check_victory(player)
+    {
         /* Look for horizontal tuples. */
         for (var i = 0; i < this.rows; i++) {
             var cnt = 0;
@@ -377,7 +391,9 @@ function Game(gl)
                 if (this.state[i][j] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("horizontal " + i + " " + (j-3));
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] = [i, j-3+v];
+                        }
                         return true;
                     }
                 } else {
@@ -394,7 +410,9 @@ function Game(gl)
                 if (this.state[i][j] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("vertical " + (i-3) + " " + j);
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] = [i-3+v, j];
+                        }
                         return true;
                     }
                 } else {
@@ -411,7 +429,9 @@ function Game(gl)
                 if (this.state[i+j][j] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("dirdiag " + i + " " + (j-3));
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] = [i+j-3+v, j-3+v];
+                        }
                         return true;
                     }
                 } else {
@@ -426,7 +446,9 @@ function Game(gl)
                 if (this.state[i][j+i] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("dirdiag " + (i-3) + " " + j);
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] = [i-3+v, j+i-3+v];
+                        }
                         return true;
                     }
                 } else {
@@ -443,7 +465,9 @@ function Game(gl)
                 if (this.state[i-j][j] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("invdiag " + i + " " + (j-3));
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] = [i-(j-3+v), j-3+v];
+                        }
                         return true;
                     }
                 } else {
@@ -458,7 +482,10 @@ function Game(gl)
                 if (this.state[this.rows-1-i][j+i] == player) {
                     cnt++;
                     if (cnt >= 4) {
-                        window.alert("invdiag " + (this.rows-1-i+3) + " " + j);
+                        for (var v = 0; v < 4; v++) {
+                            this.victory_cells[v] =
+                                    [this.rows-1-(i-3+v), j+i-3+v];
+                        }
                         return true;
                     }
                 } else {
@@ -479,12 +506,10 @@ function Game(gl)
             row--;
         }
         if (row >= 0) {
-            var vict;
-
             this.state[row][col] = this.player_id_curr;
-            vict = this.victory(this.player_id_curr);
-            this.player_id_curr = 3 - this.player_id_curr;
             this.moves++;
+            this.victory(this.player_id_curr);
+            this.player_id_curr = 3 - this.player_id_curr;
         }
     }
 
@@ -494,17 +519,15 @@ function Game(gl)
         var row = this.rows - 1;
 
         if (this.state[row][col] == this.player_id_curr) {
-            var vict;
-
             while (row > 0) {
                 this.state[row][col] =
                     this.state[row-1][col];
                 row--;
             }
             this.state[0][col] = 0;
-            vict = this.victory(this.player_id_curr);
-            this.player_id_curr = 3 - this.player_id_curr;
             this.moves++;
+            this.victory(this.player_id_curr);
+            this.player_id_curr = 3 - this.player_id_curr;
         }
     }
 
@@ -520,7 +543,16 @@ function Game(gl)
             }
         } else {  /* this.enter_state == 1 */
             if (!this.gl.keys_state[13]) {
-                if (this.player_id_curr == this.player_id_mine) {
+                if (this.victory_on) {
+                    /* Reset after a victory. */
+                    for (var i = 0; i < this.rows; i++) {
+                        for (var j = 0; j < this.cols; j++) {
+                            this.state[i][j] = 0;
+                        }
+                    }
+                    this.victory_on = false;
+                    something_changed = 1;
+                } else if (this.player_id_curr == this.player_id_mine) {
                     col = this.arrow.col;
                     this.push(col);
                     post_move_msg(this, col, 'push');
