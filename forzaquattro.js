@@ -189,7 +189,6 @@ function post_start_msg(game)
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
             if (req.responseText != "") {
-                game.match_started = true;
                 game.player_id_mine = parseInt(req.responseText);
             }
             if (game.player_id_mine == 0) {
@@ -268,7 +267,6 @@ function Game(gl)
     this.player_id_curr = 1;
     this.moves = 0;
     this.force_draw = false;
-    this.match_started = false;
 
     this.animation_step = animation_step;
     function animation_step()
@@ -368,6 +366,110 @@ function Game(gl)
         this.arrow.draw();
     }
 
+    this.victory = victory;
+    function victory(player)
+    {
+        /* Look for horizontal tuples. */
+        for (var i = 0; i < this.rows; i++) {
+            var cnt = 0;
+
+            for (var j = 0; j < this.cols; j++) {
+                if (this.state[i][j] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("horizontal " + i + " " + (j-3));
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+
+        /* Look for vertical tuples. */
+        for (var j = 0; j < this.cols; j++) {
+            var cnt = 0;
+
+            for (var i = 0; i < this.rows; i++) {
+                if (this.state[i][j] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("vertical " + (i-3) + " " + j);
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+
+        /* Look for direct diagonal tuples. */
+        for (var i = 0; i < this.rows - 3; i++) {
+            var cnt = 0;
+
+            for (var j = 0; j < this.cols && i+j < this.rows; j++) {
+                if (this.state[i+j][j] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("dirdiag " + i + " " + (j-3));
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+        for (var j = 1; j < this.cols - 3; j++) {
+            var cnt = 0;
+
+            for (var i = 0; i < this.rows && j+i < this.cols; i++) {
+                if (this.state[i][j+i] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("dirdiag " + (i-3) + " " + j);
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+
+        /* Look for inverse diagonal tuples. */
+        for (var i = 3; i < this.rows; i++) {
+            var cnt = 0;
+
+            for (var j = 0; j < this.cols && i-j >= 0; j++) {
+                if (this.state[i-j][j] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("invdiag " + i + " " + (j-3));
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+        for (var j = 1; j < this.cols - 3; j++) {
+            var cnt = 0;
+
+            for (var i = 0; i < this.rows && j+i < this.cols; i++) {
+                if (this.state[this.rows-1-i][j+i] == player) {
+                    cnt++;
+                    if (cnt >= 4) {
+                        window.alert("invdiag " + (this.rows-1-i+3) + " " + j);
+                        return true;
+                    }
+                } else {
+                    cnt = 0;
+                }
+            }
+        }
+
+        return false;
+    }
+
     this.push = push;
     function push(col)
     {
@@ -377,7 +479,10 @@ function Game(gl)
             row--;
         }
         if (row >= 0) {
+            var vict;
+
             this.state[row][col] = this.player_id_curr;
+            vict = this.victory(this.player_id_curr);
             this.player_id_curr = 3 - this.player_id_curr;
             this.moves++;
         }
@@ -389,12 +494,15 @@ function Game(gl)
         var row = this.rows - 1;
 
         if (this.state[row][col] == this.player_id_curr) {
+            var vict;
+
             while (row > 0) {
                 this.state[row][col] =
                     this.state[row-1][col];
                 row--;
             }
             this.state[0][col] = 0;
+            vict = this.victory(this.player_id_curr);
             this.player_id_curr = 3 - this.player_id_curr;
             this.moves++;
         }
