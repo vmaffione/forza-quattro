@@ -45,14 +45,15 @@ class WelcomeHandler(webapp2.RequestHandler):
         self.response.out.write('Welcome, %s' % user.username)
 
 
-class SignupHandler(webapp2.RequestHandler):
-    def write_form(self, **kwargs):
-        #curs = db.GqlQuery("SELECT * FROM User");
-        template = jinja_environment.get_template('signup.html')
+class MyHandler(webapp2.RequestHandler):
+    def write_form(self, template_name, **kwargs):
+        template = jinja_environment.get_template(template_name)
         self.response.out.write(template.render(kwargs))
 
+
+class SignupHandler(MyHandler):
     def get(self):
-        self.write_form()
+        self.write_form('signup.html')
 
     def post(self):
         username = self.request.get('username')
@@ -80,13 +81,13 @@ class SignupHandler(webapp2.RequestHandler):
             ok = False
 
         if not ok:
-            self.write_form(username = username, email = email, uerr = uerr, perr = perr, eerr = eerr)
+            self.write_form('signup.html', username = username, email = email, uerr = uerr, perr = perr, eerr = eerr)
             return
 
         # check if the username already exists
         query = User.gql("WHERE username = :1", username)
         if query.count():
-            self.write_form(username = username, email = email, uerr = 'User already exists')
+            self.write_form('signup.html', username = username, email = email, uerr = 'User already exists')
             return
 
         # create an User entity and insert into the DataStore
@@ -96,5 +97,27 @@ class SignupHandler(webapp2.RequestHandler):
         user.put()
         self.response.headers.add_header('Set-Cookie', 'uid=%s|%s; Path=/' % (user.key().id(), hashlib.md5(salt).hexdigest()))
         print "new user: %s, %s, %s, %s" % (username, email, salt, hashed_pwd)
+        self.redirect('/welcome')
+
+
+class LoginHandler(MyHandler):
+    def get(self):
+        self.write_form('login.html')
+
+    def post(self):
+        username = self.request.get('username')
+        password = self.request.get('password')
+
+        query = User.gql("WHERE username = :1", username)
+        user = query.get()
+        if not user:
+            self.write_form('login.html', username = username, uerr = 'User not registered')
+            return
+        salt, hashed_pwd = make_hashed_password(username, password, user.salt)
+        if hashed_pwd != user.hashed:
+            self.write_form('login.html', username = username, perr = 'Invalid password')
+            return
+
+        self.response.headers.add_header('Set-Cookie', 'uid=%s|%s; Path=/' % (user.key().id(), hashlib.md5(salt).hexdigest()))
         self.redirect('/welcome')
 
