@@ -33,9 +33,12 @@ class WelcomeHandler(webapp2.RequestHandler):
         if not uid:
             self.redirect('/signup')
             return
-        user_id = int(uid)
-        user = User.get_by_id(user_id)
-        if not user:
+        pair = uid.split('|')
+        if len(pair) != 2:
+            self.redirect('/signup')
+            return
+        user = User.get_by_id(int(pair[0]))
+        if not user or pair[1] != hashlib.md5(user.salt).hexdigest():
             self.redirect('/signup')
             return
         self.response.headers['Content-Type'] = 'text/plain'
@@ -76,16 +79,22 @@ class SignupHandler(webapp2.RequestHandler):
             eerr = 'Invalid email'
             ok = False
 
-        if ok:
-            # create an User entity and insert into the DataStore
-            salt, hashed_pwd = make_hashed_password(username, password)
-            user = User(username = username, email = email,
-                        salt = salt, hashed = hashed_pwd)
-            user.put()
-            self.response.headers.add_header('Set-Cookie', 'uid=%s' % (user.key().id()))
-            print "new user: %s, %s, %s, %s" % (username, email, salt, hashed_pwd)
-            self.redirect('/welcome')
-        else:
+        if not ok:
             self.write_form(username = username, email = email, uerr = uerr, perr = perr, eerr = eerr)
+            return
 
+        # check if the username already exists
+        query = User.gql("WHERE username = :1", username)
+        if query.count():
+            self.write_form(username = username, email = email, uerr = 'User already exists')
+            return
+
+        # create an User entity and insert into the DataStore
+        salt, hashed_pwd = make_hashed_password(username, password)
+        user = User(username = username, email = email,
+                        salt = salt, hashed = hashed_pwd)
+        user.put()
+        self.response.headers.add_header('Set-Cookie', 'uid=%s|%s; Path=/' % (user.key().id(), hashlib.md5(salt).hexdigest()))
+        print "new user: %s, %s, %s, %s" % (username, email, salt, hashed_pwd)
+        self.redirect('/welcome')
 
