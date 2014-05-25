@@ -45,6 +45,12 @@ class WelcomeHandler(webapp2.RequestHandler):
         self.response.out.write('Welcome, %s' % user.username)
 
 
+class LogoutHandler(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers.add_header('Set-Cookie', 'uid=;Path=/')
+        self.redirect('/signup')
+
+
 class MyHandler(webapp2.RequestHandler):
     def write_form(self, template_name, **kwargs):
         template = jinja_environment.get_template(template_name)
