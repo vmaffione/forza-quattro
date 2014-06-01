@@ -13,7 +13,7 @@ jinja_environment = jinja2.Environment(autoescape = True,
         loader = jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
 
 USERMU = 'muffin'
-USERMI = 'miagolina'
+USERMI = 'pusheen'
 
 
 class MessageMu(db.Model):
@@ -55,7 +55,6 @@ class MyHandler(webapp2.RequestHandler):
         return username
 
 
-
 class Post(MyHandler):
     def get(self):
         username = self.auth()
@@ -94,19 +93,19 @@ class Poll(MyHandler):
 
         if username == USERMU:
             query = MessageMi.all()
+            othername = USERMI
         elif username == USERMI:
             query = MessageMu.all()
+            othername = USERMU
         else:
             # This should never happen
             self.redirect('/miao/logout')
             return
 
-        result = ''
+        result = othername
         if query:
             for m in query:
-                if result != '':
-                    result += '|'
-                result += m.content
+                result += '|' + m.content
                 m.delete()
 
         print "result=", result
