@@ -61,7 +61,7 @@ class Post(MyHandler):
         if not username:
             return
 
-        self.write_form('miao-post.html', message = username)
+        self.write_form('miao-post.html', message = "Scrivi un messaggio...")
 
     def post(self):
         username = self.auth()
@@ -107,8 +107,6 @@ class Poll(MyHandler):
             for m in query:
                 result += '|' + m.content
                 m.delete()
-
-        print "result=", result
 
         self.response.headers['Content-Type'] = 'text/plain'
         self.response.out.write(result)

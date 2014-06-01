@@ -23,6 +23,24 @@ function get_my_username()
     return "";
 }
 
+function list_insert(username, message, color)
+{
+    var list = document.getElementById("list");
+    var item = document.createElement("LI");
+    var text_elem = document.createTextNode(username + ": " + message);
+    var len = list.length;
+
+    item.style.color = color;
+    item.style.fontWeight = "bold";
+
+    item.appendChild(text_elem);
+    list.insertBefore(item, list.firstChild);
+
+    if (list.childNodes.length >= 100) {
+        list.removeChild(list.lastChild);
+    }
+}
+
 function sendbutton_onclick()
 {
     var username = get_my_username();
@@ -30,13 +48,7 @@ function sendbutton_onclick()
 
     if (textbox.value.trim() != "") {
         message = textbox.value;
-
-        var list = document.getElementById("list");
-        var item = document.createElement("LI");
-        var text_elem = document.createTextNode(username + ": " + message);
-
-        item.appendChild(text_elem);
-        list.insertBefore(item, list.firstChild);
+        list_insert(username, message, "#990099");
 
         req = new XMLHttpRequest();
         req.open("POST", "/miao/post", true);
@@ -51,15 +63,13 @@ function sendbutton_onclick()
     textbox.focus();
 }
 
-function update_list()
+function poll_server()
 {
     req = new XMLHttpRequest();
     req.open("POST", "/miao/poll", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
-            var list = document.getElementById("list");
-
             messages = req.responseText.split("|");
             if (!messages.length) {
                 return;
@@ -67,11 +77,7 @@ function update_list()
             username = messages[0];
             for (var i = 1; i < messages.length; i++) {
                 if (messages[i].length) {
-                    var item = document.createElement("LI");
-                    var text_elem = document.createTextNode(username + ": " + messages[i]);
-
-                    item.appendChild(text_elem);
-                    list.insertBefore(item, list.firstChild);
+                    list_insert(username, messages[i], "#3300FF");
                 }
             }
         }
@@ -82,8 +88,10 @@ function update_list()
 function body_load()
 {
     poll_timer = setInterval(function() {
-                        update_list();
+                        poll_server();
                     }, 1000);
+
+    document.getElementById("message").focus();
 }
 
 function logout()

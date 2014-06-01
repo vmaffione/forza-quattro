@@ -13,6 +13,9 @@ handlers:
   static_files: forzaquattro.\1
   upload: forzaquattro\.(html|js)$
 
+- url: /img
+  static_dir: img
+
 - url: /miao\.js$
   static_files: miao.js
   upload: miao\.js$

@@ -6,9 +6,14 @@
             Chat miagolosa
         </title>
         <script type="text/javascript" src="/miao.js"></script>
+        <style type="text/css">
+            .textbox {
+                font-style: italic;
+            }
+        </style>
     </head>
 
-    <body onload="body_load()">
+    <body onload="body_load()" style="background-image:url(/img/pusheen-bg.jpg);">
         <h3>
             Chat
         </h3>
@@ -16,11 +21,11 @@
             <a href="/miao/logout" onclick=logout()> Log out </a>
             <br> <br> <br>
         </div>
-        <div>
+        <div class="textbox">
             <label>
                 Messaggio da inviare:
                 <br>
-                <textarea name="message" id="message" style="">{{message}}</textarea>
+                <textarea name="message" id="message" style="width:70%;background-color:#FFFFCC;">{{message}}</textarea>
             </label>
             {{merr}}
         </div>
