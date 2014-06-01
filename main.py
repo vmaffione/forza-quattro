@@ -26,10 +26,4 @@ application = webapp2.WSGIApplication([
     (r'/forzaquattro/start', forzaquattro.Start),
     (r'/forzaquattro/move', forzaquattro.Move),
     (r'/forzaquattro/poll', forzaquattro.Poll),
-
-    (r'/miao', miao.Access),
-    (r'/miao/post', miao.Post),
-    (r'/miao/logout', miao.Logout),
-    (r'/miao/poll', miao.Poll),
-
     ], debug = True)
