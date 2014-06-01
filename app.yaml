@@ -13,6 +13,10 @@ handlers:
   static_files: forzaquattro.\1
   upload: forzaquattro\.(html|js)$
 
+- url: /miao\.js$
+  static_files: miao.js
+  upload: miao\.js$
+
 - url: /.*
   script: main.application
 

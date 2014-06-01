@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>
+            Chat miagolosa
+        </title>
+        <script type="text/javascript" src="/miao.js"></script>
+    </head>
+
+    <body onload="body_load()">
+        <h3>
+            Chat
+        </h3>
+        <div>
+            <a href="/miao/logout" onclick=logout()> Log out </a>
+            <br> <br> <br>
+        </div>
+        <div>
+            <label>
+                Messaggio da inviare:
+                <br>
+                <textarea name="message" id="message" style="">{{message}}</textarea>
+            </label>
+            {{merr}}
+        </div>
+
+        <input type="button" value="Invia questo messaggio" onclick="sendbutton_onclick()">
+
+        <ul id="list">
+        </ul>
+    </body>
+</html>
