@@ -12,7 +12,9 @@ class Post(db.Model):
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
-    pass
+
+    def todict(self):
+        return '{"subject": "%s", "content": "%s"}' % (self.subject, self.content)
 
 
 class BlogPermalink(webapp2.RequestHandler):
@@ -28,6 +30,15 @@ class BlogPermalink(webapp2.RequestHandler):
         template = jinja_environment.get_template('permalink.html')
         self.response.out.write(template.render(template_values))
 
+class BlogPermalinkJson(webapp2.RequestHandler):
+    def get(self, post_id):
+        post = Post.get_by_id(int(post_id))
+        if not post:
+            self.abort(404)
+
+        self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
+        self.response.out.write(post.todict())
+
 
 class BlogHandler(webapp2.RequestHandler):
     def get(self):
@@ -38,6 +49,15 @@ class BlogHandler(webapp2.RequestHandler):
 
         template = jinja_environment.get_template('blog.html')
         self.response.out.write(template.render(template_values))
+
+
+class BlogHandlerJson(webapp2.RequestHandler):
+    def get(self):
+        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+        posts = list(posts)
+        ret = '[' + ','.join(p.todict() for p in posts) + ']'
+        self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
+        self.response.out.write(ret)
 
 
 class BlogPostHandler(webapp2.RequestHandler):

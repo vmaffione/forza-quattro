@@ -3,7 +3,6 @@ import cgi
 import re
 
 import signup, rot13, birthday, blog
-import miao
 import forzaquattro
 
 
@@ -22,7 +21,9 @@ application = webapp2.WSGIApplication([
     (r'/welcome', signup.WelcomeHandler),
     (r'/blog/newpost', blog.BlogPostHandler),
     (r'/blog/?', blog.BlogHandler),
+    (r'/blog/?\.json', blog.BlogHandlerJson),
     (r'/blog/(\d+)', blog.BlogPermalink),
+    (r'/blog/(\d+)\.json', blog.BlogPermalinkJson),
     (r'/forzaquattro/start', forzaquattro.Start),
     (r'/forzaquattro/move', forzaquattro.Move),
     (r'/forzaquattro/poll', forzaquattro.Poll),
