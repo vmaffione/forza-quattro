@@ -8,62 +8,73 @@ jinja_environment = jinja2.Environment(autoescape = True,
         loader = jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
 
 
+DEBUG = True
 USER1 = 'MACHETE'
 USER2 = 'POLLO'
+state = {
+            USER1 : {'events': [], 'color': '1'},
+            USER2 : {'events': [], 'color': '2'}
+        }
 
 
-class User1Event(db.Model):
-    content = db.StringProperty(required = True)
-
-class User2Event(db.Model):
-    content = db.StringProperty(required = True)
+def other(player):
+    if player == USER1:
+        return USER2
+    if player == USER2:
+        return USER1
+    return None
 
 
 class Base(webapp2.RequestHandler):
+    def get_color(self):
+        global state
+
+        player = self.request.get('player').upper()
+        if player in state.keys():
+            return state[player]['color']
+
     def put_event(self, c):
+        global state
+
         player = self.request.get('player').upper()
-        if player == USER2:
-            event = User2Event(content = c)
-            color = '1'
-        elif player == USER1:
-            event = User1Event(content = c)
-            color = '2'
-        else:
-            event = None
-            color = ''
+        if player in state.keys():
+            state[player]['events'].append(c)
 
-        if event:
-            event.put()
+        if DEBUG:
+            print "put_event: %s '%s'" % (player, c)
 
-        return color
+        return self.get_color()
 
-    def drain_events(self, mine):
+    def drain_events(self):
+        global state
+
         player = self.request.get('player').upper()
-        if player == USER2:
-            if not mine:
-                q = User1Event.all()
-                color = '1'
-            else:
-                q = User2Event.all()
-                color = '2'
-        elif player == USER1:
-            if not mine:
-                q = User2Event.all()
-                color = '2'
-            else:
-                q = User1Event.all()
-                color = '1'
+        other_player = other(player)
+        if other_player in state.keys():
+            q = state[other_player]['events']
         else:
             q = None
-            color = ''
 
-        result = ''
         if q:
-            for event in q:
-                result += event.content + ','
-                event.delete()
+            result = ','.join(q)
+            del q[:]
+        else:
+            result = ''
 
-        return color, result
+        if DEBUG:
+            print "drain_events %s '%s'" % (player, result)
+
+        return result
+
+    def clear_events(self):
+        player = self.request.get('player').upper()
+        if player in state.keys():
+            del state[player]['events'][:]
+
+        if DEBUG:
+            print "clear_events %s" % (player, )
+
+        return self.get_color()
 
 
 class Move(Base):
@@ -79,12 +90,12 @@ class Move(Base):
 class Start(Base):
     def post(self):
         # clean up leftovers
-        color, events = self.drain_events(mine = True)
+        color = self.clear_events()
         self.response.out.write(color)
 
 
 class Poll(Base):
     def post(self):
-        color, events = self.drain_events(mine = False)
-        self.response.out.write(color + ',' + events)
+        events = self.drain_events()
+        self.response.out.write(events)
 

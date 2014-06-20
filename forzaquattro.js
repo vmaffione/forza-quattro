@@ -192,6 +192,9 @@ function post_start_msg(game)
         if (req.readyState == 4 && req.status == 200) {
             if (req.responseText != "") {
                 game.player_id_mine = parseInt(req.responseText);
+                game.poll_timer = setInterval(function() {
+                                                    post_poll_msg(game);
+                                                }, 1000);
             }
             if (game.player_id_mine == 0) {
                 window.alert("Tu non puoi giocare, non conosci la chiave!");
@@ -211,17 +214,21 @@ function post_move_msg(game, col, move)
 
 function post_poll_msg(game)
 {
+    if (game.victory_on) {
+        /* Avoid considering the other's moves belonging
+           to the next match, while still the player has
+           to press Enter in order to exit from the 'victory_on'
+           state.
+           */
+        return;
+    }
     req = new XMLHttpRequest();
     req.open("POST", "forzaquattro/poll", true);
     req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
     req.onreadystatechange = function () {
         if (req.readyState == 4 && req.status == 200) {
             events = req.responseText.split(",");
-            player_id_other = events[0];
-            if (player_id_other == game.player_id_mine) {
-                return;
-            }
-            for (var i = 1; i < events.length; i++) {
+            for (var i = 0; i < events.length; i++) {
                 cmd = events[i].split(" ");
                 if (cmd.length != 3) {
                     continue;
@@ -267,6 +274,8 @@ function Game(gl)
             this.state[i][j] = 0;
         }
     }
+
+    this.poll_timer = null;
 
     this.animation_step = animation_step;
     function animation_step()
@@ -533,7 +542,11 @@ function Game(gl)
         if (row >= 0) {
             this.state[row][col] = this.player_id_curr;
             this.update_game();
+
+            return true
         }
+
+        return false
     }
 
     this.pop = pop;
@@ -549,7 +562,11 @@ function Game(gl)
             }
             this.state[0][col] = 0;
             this.update_game();
+
+            return true
         }
+
+        return false
     }
 
     this.reset = reset;
@@ -593,9 +610,11 @@ function Game(gl)
                 something_changed = 1;
             } else if (this.player_id_curr == this.player_id_mine) {
                 col = this.arrow.col;
-                this.push(col);
-                post_move_msg(this, col, 'push');
-                something_changed = 1;
+                ok = this.push(col);
+                if (ok) {
+                    post_move_msg(this, col, 'push');
+                    something_changed = 1;
+                }
             }
         }
 
@@ -604,9 +623,11 @@ function Game(gl)
             this.gl.keys_pending[32] = false;
             if (this.player_id_curr == this.player_id_mine) {
                 col = this.arrow.col;
-                this.pop(col);
-                post_move_msg(this, col, 'pop');
-                something_changed = 1;
+                ok = this.pop(col);
+                if (ok) {
+                    post_move_msg(this, col, 'pop');
+                    something_changed = 1;
+                }
             }
         }
 
