@@ -2,6 +2,7 @@ import webapp2
 import jinja2
 import os
 from google.appengine.ext import db
+from threading import Lock
 
 # loads jinja2
 jinja_environment = jinja2.Environment(autoescape = True,
@@ -13,7 +14,8 @@ USER1 = 'MACHETE'
 USER2 = 'POLLO'
 state = {
             USER1 : {'events': [], 'color': '1'},
-            USER2 : {'events': [], 'color': '2'}
+            USER2 : {'events': [], 'color': '2'},
+            'lock' : Lock()
         }
 
 
@@ -38,7 +40,9 @@ class Base(webapp2.RequestHandler):
 
         player = self.request.get('player').upper()
         if player in state.keys():
+            state['lock'].acquire()
             state[player]['events'].append(c)
+            state['lock'].release()
 
         if DEBUG:
             print "put_event: %s '%s'" % (player, c)
@@ -51,13 +55,11 @@ class Base(webapp2.RequestHandler):
         player = self.request.get('player').upper()
         other_player = other(player)
         if other_player in state.keys():
-            q = state[other_player]['events']
-        else:
-            q = None
-
-        if q:
-            result = ','.join(q)
-            del q[:]
+            state['lock'].acquire()
+            events = state[other_player]['events']
+            result = ','.join(events)
+            del events[:]
+            state['lock'].release()
         else:
             result = ''
 
@@ -69,7 +71,9 @@ class Base(webapp2.RequestHandler):
     def clear_events(self):
         player = self.request.get('player').upper()
         if player in state.keys():
+            state['lock'].acquire()
             del state[player]['events'][:]
+            state['lock'].release()
 
         if DEBUG:
             print "clear_events %s" % (player, )
