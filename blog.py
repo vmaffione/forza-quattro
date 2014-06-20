@@ -1,11 +1,16 @@
 import webapp2
 import jinja2
 import os
+import time
 from google.appengine.ext import db
 
 # loads jinja2
 jinja_environment = jinja2.Environment(autoescape = True,
         loader = jinja2.FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
+
+
+front_last_refresh = time.time()
+front_cache = None
 
 
 class Post(db.Model):
@@ -42,9 +47,16 @@ class BlogPermalinkJson(webapp2.RequestHandler):
 
 class BlogHandler(webapp2.RequestHandler):
     def get(self):
-        posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+        global front_cache
+        global front_last_refresh
+
+        if front_cache == None:
+            front_last_refresh = time.time()
+            front_cache = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+
         template_values = {
-            'posts': posts,
+            'posts': front_cache,
+            'age' : round(time.time() - front_last_refresh, 2),
         }
 
         template = jinja_environment.get_template('blog.html')
@@ -77,6 +89,8 @@ class BlogPostHandler(webapp2.RequestHandler):
         self.write_form()
 
     def post(self):
+        global front_cache
+
         subject = self.request.get('subject')
         content = self.request.get('content')
 
@@ -93,6 +107,7 @@ class BlogPostHandler(webapp2.RequestHandler):
         if ok:
             post = Post(subject = subject, content = content)
             post.put()
+            front_cache = None
             self.redirect('/blog/%s' % post.key().id())
         else:
             self.write_form(subject, content, subject_err, content_err)
