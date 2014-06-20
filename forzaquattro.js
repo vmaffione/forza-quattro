@@ -192,12 +192,18 @@ function post_start_msg(game)
         if (req.readyState == 4 && req.status == 200) {
             if (req.responseText != "") {
                 game.player_id_mine = parseInt(req.responseText);
+                if (isNaN(game.player_id_mine)) {
+                    game.player_id_mine = 0;
+                }
+            }
+            if (game.player_id_mine == 0) {
+                game.error_string = "Who are you?";
+                game.force_draw = true;
+                window.alert("Tu non puoi giocare, non conosci la chiave!");
+            } else {
                 game.poll_timer = setInterval(function() {
                                                     post_poll_msg(game);
                                                 }, 1000);
-            }
-            if (game.player_id_mine == 0) {
-                window.alert("Tu non puoi giocare, non conosci la chiave!");
             }
         }
     }
@@ -333,6 +339,9 @@ function Game(gl)
         ctx.fillText(txt, 20, 102);
         txt = "Sequenza:   " + this.seqnum;
         ctx.fillText(txt, 20, 126);
+        txt = "Errori:   " + this.error_string;
+        ctx.fillStyle = '#FF000';
+        ctx.fillText(txt, 20, 150);
 
         /* Draw hints. */
         ctx.fillStyle = make_rgb(255, 255, 255);
@@ -583,6 +592,7 @@ function Game(gl)
         this.victory_color = 50;
         this.force_draw = false;
         this.seqnum = 0;
+        this.error_string = "";
     }
 
     this.reset_state = reset_state;
