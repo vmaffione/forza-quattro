@@ -244,6 +244,8 @@ function post_poll_msg(game)
                 if (seqnum != game.seqnum + 1) {
                     /* Sequencing error, let's reset. */
                     game.reset();
+                    game.error_string("seq:" + seqnum + "; exp:" + game.seqnum+1);
+                    game.force_draw = true;
                 }
                 if (cmd[1] == "push") {
                     game.push(col);
@@ -412,14 +414,22 @@ function Game(gl)
     function update_game()
     {
         var player = this.player_id_curr;
+        var other_player = 3 - player;
 
         this.moves++;
         this.victory_on = this.check_victory(player);
         if (this.victory_on) {
             this.victory_counter[player]++;
             this.moves = 0;
+        } else {
+            this.victory_on = this.check_victory(other_player);
+            if (this.victory_on) {
+                this.victory_counter[other_player]++;
+                this.moves = 0;
+            }
         }
-        this.player_id_curr = 3 - this.player_id_curr;
+        this.player_id_curr = other_player;
+
         this.seqnum++;
     }
 
@@ -631,7 +641,8 @@ function Game(gl)
         /* User presses 'Space'. */
         if (this.gl.keys_pending[32]) {
             this.gl.keys_pending[32] = false;
-            if (this.player_id_curr == this.player_id_mine) {
+            if (this.player_id_curr == this.player_id_mine &&
+                    !this.victory_on) {
                 col = this.arrow.col;
                 ok = this.pop(col);
                 if (ok) {
