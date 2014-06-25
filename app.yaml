@@ -16,6 +16,9 @@ handlers:
 - url: /img
   static_dir: img
 
+- url: /sounds
+  static_dir: sounds
+
 - url: /miao\.js$
   static_files: miao.js
   upload: miao\.js$

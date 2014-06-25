@@ -235,6 +235,8 @@ function post_poll_msg(game)
         if (req.readyState == 4 && req.status == 200) {
             events = req.responseText.split(",");
             for (var i = 0; i < events.length; i++) {
+                var sound = document.getElementById("gallina");
+
                 cmd = events[i].split(" ");
                 if (cmd.length != 3) {
                     continue;
@@ -254,6 +256,7 @@ function post_poll_msg(game)
                     game.pop(col);
                     game.force_draw = true;
                 }
+                sound.play();
             }
         }
     }
@@ -427,6 +430,12 @@ function Game(gl)
                 this.victory_counter[other_player]++;
                 this.moves = 0;
             }
+        }
+
+        if (this.victory_on) {
+                var sound = document.getElementById("mucca");
+
+                sound.play();
         }
         this.player_id_curr = other_player;
 
@@ -632,6 +641,9 @@ function Game(gl)
                 col = this.arrow.col;
                 ok = this.push(col);
                 if (ok) {
+                    var sound = document.getElementById("maiale");
+
+                    sound.play();
                     post_move_msg(this, col, 'push');
                     something_changed = 1;
                 }
@@ -646,6 +658,9 @@ function Game(gl)
                 col = this.arrow.col;
                 ok = this.pop(col);
                 if (ok) {
+                    var sound = document.getElementById("maiale");
+
+                    sound.play();
                     post_move_msg(this, col, 'pop');
                     something_changed = 1;
                 }
