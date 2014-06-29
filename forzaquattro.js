@@ -641,7 +641,7 @@ function Game(gl)
                 col = this.arrow.col;
                 ok = this.push(col);
                 if (ok) {
-                    var sound = document.getElementById("maiale");
+                    var sound = document.getElementById("peora");
 
                     sound.play();
                     post_move_msg(this, col, 'push');
@@ -658,7 +658,7 @@ function Game(gl)
                 col = this.arrow.col;
                 ok = this.pop(col);
                 if (ok) {
-                    var sound = document.getElementById("maiale");
+                    var sound = document.getElementById("peora");
 
                     sound.play();
                     post_move_msg(this, col, 'pop');
