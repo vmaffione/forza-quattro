@@ -201,9 +201,12 @@ function post_start_msg(game)
                 game.force_draw = true;
                 window.alert("Tu non puoi giocare, non conosci la chiave!");
             } else {
+                var sound = document.getElementById("mucca");
+
                 game.poll_timer = setInterval(function() {
                                                     post_poll_msg(game);
                                                 }, 1000);
+		sound.play();
             }
         }
     }
